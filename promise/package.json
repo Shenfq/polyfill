@@ -1,0 +1,22 @@
+{
+  "name": "promise",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Shenfq/polyfill.git"
+  },
+  "keywords": [
+    "promise"
+  ],
+  "author": "Shenfq",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Shenfq/polyfill/issues"
+  },
+  "homepage": "https://github.com/Shenfq/polyfill#readme"
+}
