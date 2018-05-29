@@ -36,6 +36,67 @@ var STATUS = {
   REJECTED: 'REJECTED'
 }
 
+var helper = {
+  doResolve: function (promise, value) {
+    try {
+      promise.status = STATUS.FULFILLED
+      promise.value = value
+      promise.resolveQueue.forEach(function (func) {
+        func(value)
+      });
+      return promise
+    } catch(error) {
+      return this.doReject(promise, error)
+    }
+  },
+  doReject: function (promise, reason) {
+    promise.status = STATUS.REJECTED
+    promise.value = reason
+    promise.rejectQueue.forEach(function (func) {
+      func(reason)
+    })
+    return promise
+  },
+  doThenFunc: function (promise, status, returnValue, callbacks) {
+    var resolve = callbacks.resolve, reject = callbacks.reject
+    try {
+      if (returnValue === promise) {
+        throw new TypeError('Chaining cycle detected for promise')
+      }
+      if (returnValue instanceof Deferr) {
+        returnValue.then(resolve, reject)
+        return
+      }
+      function end () {
+        console.log(status)
+        status === STATUS.FULFILLED
+          ? resolve(returnValue)
+          : reject(returnValue)
+      }
+      if (isObject(returnValue) || isFunction(returnValue)) {
+        var then = returnValue.then, called = false //because x.then could be a getter
+        if (isFunction(then)) {
+          then.call(returnValue, function (val) {
+            if (called) return //只能被调用一次
+            called = true
+            helper.doThenFunc(promise, status, val, callbacks)
+          }, function (reason) {
+            if (called) return //只能被调用一次
+            called = true
+            reject(reason)
+          })
+          return
+        } else {
+          end()
+        }
+      }
+      end()
+    } catch (error) {
+      reject(error)
+    }
+  }
+}
+
 function Deferr(resolver) {
   if (!isFunction(resolver)) {
     throw new TypeError('Deferr resolver ' + getType(resolver) + ' is not a function')
@@ -51,14 +112,14 @@ function Deferr(resolver) {
     if (called) return
     called = true
     asynWrap(function () {
-      doResolve(self, value)
+      helper.doResolve(self, value)
     })()
   }
   function reject(reason) {
     if (called) return
     called = true
     asynWrap(function () {
-      doReject(self, reason)
+      helper.doReject(self, reason)
     })()
   }
 
@@ -66,85 +127,53 @@ function Deferr(resolver) {
     resolver(resolve, reject)
   } catch (error) {
     asynWrap(function () {
-      doReject(self, error)
+      helper.doReject(self, error)
     })()
   }
 }
 
 //原型上的方法
 Deferr.prototype.then = function doThen(onResolve, onReject) {
-  var self = this
+  var self = this, newPormise
+  //解决值穿透
+  onReject = isFunction(onReject) ? onReject : function (reason) {throw reason}
   onResolve = isFunction(onResolve) ? onResolve : function (value) {return value}
-  onReject = isFunction(onReject) ? onReject : function (reason) {return reason}
-  if (this.status === STATUS.FULFILLED) {
-    return new Deferr(
-      asynWrap(function (resolve, reject) {
-        try {
-          //解决值穿透的问题，规范规定如果传入的不是函数，当前参数直接被忽略
-          var returnValue = onResolve(self.value)
-          if (returnValue instanceof Deferr) {
-            returnValue.then(resolve, reject)
-          }
-          else {
-            resolve(returnValue)
-          }
-        } catch (error) {
-          reject(error)
-        }
-      }, self)
-    )
-  }
-  if (this.status === STATUS.REJECTED) {
-    return new Deferr(
-      asynWrap(function (resolve, reject) {
-        try {
-          //解决值穿透的问题，规范规定如果传入的不是函数，当前参数直接被忽略
-          var returnValue = onReject(self.value)
-          if (returnValue instanceof Deferr) {
-            returnValue.then(resolve, reject)
-          }
-          else {
-            reject(returnValue)
-          }
-        } catch (error) {
-          reject(error)
-        }
-      }, self)
-    )
-  }
+
   if (this.status === STATUS.PENDING) {
-    return new Deferr(function (resolve, reject) {
+    return newPormise = new Deferr(function (resolve, reject) {
       self.resolveQueue.push(function (value) {
         try {
-          //解决值穿透的问题，规范规定如果传入的不是函数，当前参数直接被忽略
           var returnValue = onResolve(value)
-          if (returnValue instanceof Deferr) {
-            returnValue.then(resolve, reject)
-          }
-          else {
-            resolve(returnValue)
-          }
+          helper.doThenFunc(newPormise, STATUS.FULFILLED, returnValue, {resolve, reject})
         } catch (error) {
           reject(error)
         }
       })
-
       self.rejectQueue.push(function (reason) {
         try {
-          //解决值穿透的问题，规范规定如果传入的不是函数，当前参数直接被忽略
           var returnValue = onReject(reason)
-          if (returnValue instanceof Deferr) {
-            returnValue.then(resolve, reject)
-          }
-          else {
-            reject(returnValue)
-          }
+          helper.doThenFunc(newPormise, STATUS.FULFILLED, returnValue, {resolve, reject})
         } catch (error) {
           reject(error)
         }
       })
     })
   }
+  else {
+    return newPormise = new Deferr(
+      asynWrap(function (resolve, reject) {
+        try {
+          var returnValue = self.status === STATUS.FULFILLED
+            ? onResolve(self.value)
+            : onReject(self.value)
+
+          helper.doThenFunc(newPormise, self.status, returnValue, {resolve, reject})
+        } catch (error) {
+          reject(error)
+        }
+      }, self)
+    )
+  }
 }
 
 Deferr.prototype.catch = function doCatch(onReject) {
@@ -162,73 +191,10 @@ Deferr.reject = function (reason) {
     reject(reason)
   })
 }
+
 Deferr.all = function () {
 
 }
 Deferr.race = function () {
 
-}
-
-function doResolve(self, value) {
-  try {
-    self.status = STATUS.FULFILLED
-    self.value = value
-    self.resolveQueue.forEach(function (func) {
-      func(value)
-    });
-    return self
-  } catch(error) {
-    return doReject(self, error)
-  }
-}
-function doReject(self, reason) {
-  self.status = STATUS.REJECTED
-  self.value = reason
-  self.rejectQueue.forEach(function (func) {
-    func(reason)
-  })
-  return self
-}
-
-Deferr.prototype.catch = function doCatch(onReject) {
-  return this.then(null, onReject)
-}
-
-//其他的方法
-Deferr.resolve = function (value) {
-  return new this(function (resolve, reject) {
-    resolve(value)
-  })
-}
-Deferr.reject = function (reason) {
-  return new this(function (resolve, reject) {
-    reject(reason)
-  })
-}
-Deferr.all = function () {
-
-}
-Deferr.race = function () {
-
-}
-
-function doResolve(self, value) {
-  try {
-    self.status = STATUS.FULFILLED
-    self.value = value
-    self.resolveQueue.forEach(function (func) {
-      func(value)
-    });
-    return self
-  } catch(error) {
-    return doReject(self, error)
-  }
-}
-function doReject(self, reason) {
-  self.status = STATUS.REJECTED
-  self.value = reason
-  self.rejectQueue.forEach(function (func) {
-    func(reason)
-  })
-  return self
 }
