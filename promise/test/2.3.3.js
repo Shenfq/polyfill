@@ -121,7 +121,7 @@ function testCallingRejectPromiseRejectsWith(reason, stringRepresentation) {
 }
 
 describe("2.3.3: Otherwise, if `x` is an object or function,", function () {
-  /* describe("2.3.3.1: Let `then` be `x.then`", function () {
+  describe("2.3.3.1: Let `then` be `x.then`", function () {
     describe("`x` is an object with null prototype", function () {
       var numberOfTimesThenWasRetrieved = null
 
@@ -207,7 +207,7 @@ describe("2.3.3: Otherwise, if `x` is an object or function,", function () {
         })
       })
     })
-  }) */
+  })
 
   describe("2.3.3.2: If retrieving the property `x.then` results in a thrown exception `e`, reject `promise` with " +
     "`e` as the reason.", function () {
@@ -239,7 +239,7 @@ describe("2.3.3: Otherwise, if `x` is an object or function,", function () {
 
   describe("2.3.3.3: If `then` is a function, call it with `x` as `this`, first argument `resolvePromise`, and " +
     "second argument `rejectPromise`", function () {
-      /* describe("Calls with `x` as `this` and two function arguments", function () {
+      describe("Calls with `x` as `this` and two function arguments", function () {
         function xFactory() {
           var x = {
             then: function (onFulfilled, onRejected) {
@@ -286,11 +286,11 @@ describe("2.3.3: Otherwise, if `x` is an object or function,", function () {
             done()
           })
         })
-      }) */
+      })
 
       describe("2.3.3.3.1: If/when `resolvePromise` is called with value `y`, run `[[Resolve]](promise, y)`",
         function () {
-          /* describe("`y` is not a thenable", function () {
+          describe("`y` is not a thenable", function () {
             testCallingResolvePromiseFulfillsWith(function () { return undefined }, "`undefined`", undefined)
             testCallingResolvePromiseFulfillsWith(function () { return null }, "`null`", null)
             testCallingResolvePromiseFulfillsWith(function () { return false }, "`false`", false)
@@ -315,7 +315,7 @@ describe("2.3.3: Otherwise, if `x` is an object or function,", function () {
 
               testCallingResolvePromiseRejectsWith(yFactory, stringRepresentation, sentinel)
             })
-          }) */
+          })
 
           describe("`y` is a thenable for a thenable", function () {
             Object.keys(thenables.fulfilled).forEach(function (outerStringRepresentation) {

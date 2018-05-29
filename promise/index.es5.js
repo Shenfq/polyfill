@@ -64,14 +64,10 @@ var helper = {
         throw new TypeError('Chaining cycle detected for promise')
       }
       if (returnValue instanceof Deferr) {
-        returnValue.then(resolve, reject)
+        returnValue.then(function (val) {
+          helper.doThenFunc(promise, status, val, callbacks)
+        }, reject)
         return
-      }
-      function end () {
-        console.log(status)
-        status === STATUS.FULFILLED
-          ? resolve(returnValue)
-          : reject(returnValue)
       }
       if (isObject(returnValue) || isFunction(returnValue)) {
         var then = returnValue.then, called = false //because x.then could be a getter
@@ -86,12 +82,14 @@ var helper = {
             reject(reason)
           })
           return
-        } else {
-          end()
         }
       }
-      end()
+      status === STATUS.FULFILLED
+        ? resolve(returnValue)
+        : reject(returnValue)
     } catch (error) {
+      if (called) return //只能被调用一次
+      called = true
       reject(error)
     }
   }
