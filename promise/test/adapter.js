@@ -16,6 +16,6 @@ adapter.resolved = function (value) {
 adapter.rejected = function (reason) {
   return Promise.reject(reason);
 }
-
+adapter.Promise = Promise
 
 module.exports = adapter

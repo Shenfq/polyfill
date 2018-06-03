@@ -57,7 +57,7 @@ var helper = {
     })
     return promise
   },
-  doThenFunc: function (promise, status, returnValue, callbacks) {
+  doThenFunc: function (promise, returnValue, callbacks) {
     var resolve = callbacks.resolve, reject = callbacks.reject
     try {
       if (returnValue === promise) {
@@ -65,7 +65,7 @@ var helper = {
       }
       if (returnValue instanceof Deferr) {
         returnValue.then(function (val) {
-          helper.doThenFunc(promise, status, val, callbacks)
+          helper.doThenFunc(promise, val, callbacks)
         }, reject)
         return
       }
@@ -75,7 +75,7 @@ var helper = {
           then.call(returnValue, function (val) {
             if (called) return //只能被调用一次
             called = true
-            helper.doThenFunc(promise, status, val, callbacks)
+            helper.doThenFunc(promise, val, callbacks)
           }, function (reason) {
             if (called) return //只能被调用一次
             called = true
@@ -84,9 +84,7 @@ var helper = {
           return
         }
       }
-      status === STATUS.FULFILLED
-        ? resolve(returnValue)
-        : reject(returnValue)
+      resolve(returnValue)
     } catch (error) {
       if (called) return //只能被调用一次
       called = true
@@ -142,7 +140,10 @@ Deferr.prototype.then = function doThen(onResolve, onReject) {
       self.resolveQueue.push(function (value) {
         try {
           var returnValue = onResolve(value)
-          helper.doThenFunc(newPormise, STATUS.FULFILLED, returnValue, {resolve, reject})
+          helper.doThenFunc(newPormise, returnValue, {
+            resolve: resolve,
+            reject: reject
+          })
         } catch (error) {
           reject(error)
         }
@@ -150,7 +151,10 @@ Deferr.prototype.then = function doThen(onResolve, onReject) {
       self.rejectQueue.push(function (reason) {
         try {
           var returnValue = onReject(reason)
-          helper.doThenFunc(newPormise, STATUS.FULFILLED, returnValue, {resolve, reject})
+          helper.doThenFunc(newPormise, returnValue, {
+            resolve: resolve,
+            reject: reject
+          })
         } catch (error) {
           reject(error)
         }
@@ -164,7 +168,10 @@ Deferr.prototype.then = function doThen(onResolve, onReject) {
             ? onResolve(self.value)
             : onReject(self.value)
 
-          helper.doThenFunc(newPormise, self.status, returnValue, {resolve, reject})
+          helper.doThenFunc(newPormise, returnValue, {
+            resolve: resolve,
+            reject: reject
+          })
         } catch (error) {
           reject(error)
         }
@@ -189,46 +196,58 @@ Deferr.reject = function (reason) {
   })
 }
 
-Deferr.all = function all(arr) {
-  var args = Array.prototype.slice.call(arr)
+Deferr.all = function all(promises) {
+  if (!isArray(promises)) {
+    return this.reject(new TypeError('args must be an array'))
+  }
 
-  return new Deferr(function (resolve, reject) {
-    if (args.length === 0) return resolve([])
-    var remaining = args.length
-    for (var i = 0; i < args.length; i++) {
-      res(i, args[i])
-    }
-    function res(i, returnValue) {
-      if (returnValue && (typeof returnValue === 'object' || typeof returnValue === 'function')) {
-        if (returnValue instanceof Deferr && returnValue.then === Deferr.prototype.then) {
-          if (returnValue.status === STATUS.FULFILLED) return res(i, returnValue.value)
-          if (returnValue.status === STATUS.REJECTED) reject(returnValue.value)
-          returnValue.then(function (val) {
-            res(i, returnValue)
-          }, reject)
-          return
-        } else {
-          var then = returnValue.then
-          if (typeof then === 'function') {
-            var p = new Deferr(then.bind(returnValue))
-            p.then(function (val) {
-              res(i, returnValue)
-            }, reject)
-            return
+  var newPromise,
+      remaining = 1,
+      len = promises.length,
+      result = []
+  return newPromise = new Deferr(function (resolve, reject) {
+    if (promises.length === 0) return resolve([])
+
+    asynWrap(function() {
+      for (var i = 0; i < len; i++) {
+        done(i, promises[i])
+      }
+    })()
+
+    function done (index, value) {
+      helper.doThenFunc(newPromise, value, {
+        resolve: function (val) {
+          result[index] = val
+          if (++remaining === len) {
+            resolve(result)
           }
-        }
-      }
-      args[i] = val
-      if (--remaining === 0) {
-        resolve(args)
-      }
+        },
+        reject: reject
+      })
     }
   })
+
 }
-Deferr.race = function race(values) {
-    return new Deferr(function (resolve, reject) {
-      values.forEach(function(value){
-        Deferr.resolve(value).then(resolve, reject)
+Deferr.race = function race(promises) {
+  if (!isArray(promises)) {
+    return this.reject(new TypeError('args must be an array'))
+  }
+  var newPromise,
+      len = promises.length
+
+  return newPromise = new Deferr(function (resolve, reject) {
+    if (promises.length === 0) return resolve([])
+
+    asynWrap(function () {
+      for (var i = 0; i < len; i++) {
+        done(i, promises[i])
+      }
+    })()
+    function done(index, value) {
+      helper.doThenFunc(newPromise, value, {
+        resolve: resolve,
+        reject: reject
       })
-    })
+    }
+  })
 }
