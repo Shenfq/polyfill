@@ -2,31 +2,31 @@
 
 const assert = require("assert")
 const {
-    deferred,
-    resolved,
-    rejected
+  deferred,
+  resolved,
+  rejected
 } = require("./adapter")
 const { testFulfilled, testRejected } = require('./testFunction')
 
 const dummy = { dummy: "dummy" } // we fulfill or reject with this when we don't intend to test against it
 
 describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the execution context stack contains only " +
-         "platform code.", function () {
+  "platform code.", function () {
     describe("`then` returns before the promise becomes fulfilled or rejected", function () {
-        testFulfilled(dummy, function (promise, done) {
+      testFulfilled(dummy, function (promise, done) {
         var thenHasReturned = false
 
-            promise.then(function onFulfilled() {
+        promise.then(function onFulfilled() {
           assert.strictEqual(thenHasReturned, true)
           done()
         })
 
         thenHasReturned = true
       })
-        testRejected(dummy, function (promise, done) {
+      testRejected(dummy, function (promise, done) {
         var thenHasReturned = false
 
-            promise.then(null, function onRejected() {
+        promise.then(null, function onRejected() {
           assert.strictEqual(thenHasReturned, true)
           done()
         })
@@ -40,7 +40,7 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
         var d = deferred()
         var onFulfilledCalled = false
 
-            d.promise.then(function onFulfilled() {
+        d.promise.then(function onFulfilled() {
           onFulfilledCalled = true
         })
 
@@ -55,7 +55,7 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
 
         d.resolve(dummy)
 
-            d.promise.then(function onFulfilled() {
+        d.promise.then(function onFulfilled() {
           onFulfilledCalled = true
         })
 
@@ -66,8 +66,8 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
         var promise = resolved()
         var firstOnFulfilledFinished = false
 
-            promise.then(function () {
-                promise.then(function () {
+        promise.then(function () {
+          promise.then(function () {
             assert.strictEqual(firstOnFulfilledFinished, true)
             done()
           })
@@ -80,8 +80,8 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
         var promise2 = resolved()
         var firstOnRejectedFinished = false
 
-            promise.then(null, function () {
-                promise2.then(function () {
+        promise.then(null, function () {
+          promise2.then(function () {
             assert.strictEqual(firstOnRejectedFinished, true)
             done()
           })
@@ -93,12 +93,12 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
         var d = deferred()
         var firstStackFinished = false
 
-            setTimeout(function () {
+        setTimeout(function () {
           d.resolve(dummy)
           firstStackFinished = true
         }, 0)
 
-            d.promise.then(function () {
+        d.promise.then(function () {
           assert.strictEqual(firstStackFinished, true)
           done()
         })
@@ -107,11 +107,11 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
 
     describe("Clean-stack execution ordering tests (rejection case)", function () {
       it("when `onRejected` is added immediately before the promise is rejected",
-                function () {
+        function () {
           var d = deferred()
           var onRejectedCalled = false
 
-            d.promise.then(null, function onRejected() {
+          d.promise.then(null, function onRejected() {
             onRejectedCalled = true
           })
 
@@ -126,7 +126,7 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
 
         d.reject(dummy)
 
-            d.promise.then(null, function onRejected() {
+        d.promise.then(null, function onRejected() {
           onRejectedCalled = true
         })
 
@@ -138,8 +138,8 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
         var promise2 = rejected()
         var firstOnFulfilledFinished = false
 
-            promise.then(function () {
-                promise2.then(null, function () {
+        promise.then(function () {
+          promise2.then(null, function () {
             assert.strictEqual(firstOnFulfilledFinished, true)
             done()
           })
@@ -151,8 +151,8 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
         var promise = rejected()
         var firstOnRejectedFinished = false
 
-            promise.then(null, function () {
-                promise.then(null, function () {
+        promise.then(null, function () {
+          promise.then(null, function () {
             assert.strictEqual(firstOnRejectedFinished, true)
             done()
           })
@@ -164,12 +164,12 @@ describe("2.2.4: `onFulfilled` or `onRejected` must not be called until the exec
         var d = deferred()
         var firstStackFinished = false
 
-            setTimeout(function () {
+        setTimeout(function () {
           d.reject(dummy)
           firstStackFinished = true
         }, 0)
 
-            d.promise.then(null, function () {
+        d.promise.then(null, function () {
           assert.strictEqual(firstStackFinished, true)
           done()
         })

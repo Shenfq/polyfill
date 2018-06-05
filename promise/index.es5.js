@@ -59,6 +59,7 @@ var helper = {
   },
   doThenFunc: function (promise, returnValue, callbacks) {
     var resolve = callbacks.resolve, reject = callbacks.reject
+    var called = false
     try {
       if (returnValue === promise) {
         throw new TypeError('Chaining cycle detected for promise')
@@ -70,7 +71,7 @@ var helper = {
         return
       }
       if (isObject(returnValue) || isFunction(returnValue)) {
-        var then = returnValue.then, called = false //because x.then could be a getter
+        var then = returnValue.then //because x.then could be a getter
         if (isFunction(then)) {
           then.call(returnValue, function (val) {
             if (called) return //只能被调用一次
