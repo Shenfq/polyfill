@@ -175,72 +175,75 @@ class Deferr {
   catch(onReject) {
     return this.then(null, onReject)
   }
-}
 
-//其他的方法
-Deferr.resolve = function (value) {
-  return new this(function (resolve, reject) {
-    resolve(value)
-  })
-}
-Deferr.reject = function (reason) {
-  return new this(function (resolve, reject) {
-    reject(reason)
-  })
-}
+  //其他的静态方法
 
-Deferr.all = function all(promises) {
-  if (!helper.isArray(promises)) {
-    return this.reject(new TypeError('args must be an array'))
+  static resolve (value) {
+    return new this(function (resolve, reject) {
+      resolve(value)
+    })
   }
 
-  let newPromise, remaining = 1, result = []
-  const len = promises.length
+  static reject (reason) {
+    return new this(function (resolve, reject) {
+      reject(reason)
+    })
+  }
 
-  return newPromise = new Deferr(function (resolve, reject) {
-    if (promises.length === 0) return resolve([])
+  static all (promises) {
+    if (!helper.isArray(promises)) {
+      return this.reject(new TypeError('args must be an array'))
+    }
 
-    helper.asynWrap(() => {
-      for (let i = 0; i < len; i++) {
-        done(i, promises[i])
+    let newPromise, remaining = 1, result = []
+    const len = promises.length
+
+    return newPromise = new Deferr(function (resolve, reject) {
+      if (promises.length === 0) return resolve([])
+
+      helper.asynWrap(() => {
+        for (let i = 0; i < len; i++) {
+          done(i, promises[i])
+        }
+      })
+
+      function done(index, value) {
+        helper.doThenFunc(newPromise, value, {
+          resolve: (val) => {
+            result[index] = val
+            if (++remaining === len) {
+              resolve(result)
+            }
+          },
+          reject
+        })
       }
     })
 
-    function done (index, value) {
-      helper.doThenFunc(newPromise, value, {
-        resolve: (val) => {
-          result[index] = val
-          if (++remaining === len) {
-            resolve(result)
-          }
-        },
-        reject
-      })
-    }
-  })
-
-}
-Deferr.race = function race(promises) {
-  if (!helper.isArray(promises)) {
-    return this.reject(new TypeError('args must be an array'))
   }
-  let newPromise
-  const len = promises.length
 
-  return newPromise = new Deferr(function (resolve, reject) {
-    if (promises.length === 0) return resolve([])
+  static race(promises) {
+    if (!helper.isArray(promises)) {
+      return this.reject(new TypeError('args must be an array'))
+    }
+    let newPromise
+    const len = promises.length
 
-    helper.asynWrap(() => {
-      for (let i = 0; i < len; i++) {
-        done(i, promises[i])
+    return newPromise = new Deferr(function (resolve, reject) {
+      if (promises.length === 0) return resolve([])
+
+      helper.asynWrap(() => {
+        for (let i = 0; i < len; i++) {
+          done(i, promises[i])
+        }
+      })
+      function done(index, value) {
+        helper.doThenFunc(newPromise, value, {
+          resolve, reject
+        })
       }
     })
-    function done(index, value) {
-      helper.doThenFunc(newPromise, value, {
-        resolve, reject
-      })
-    }
-  })
+  }
 }
 
 module.exports = Deferr

@@ -1,5 +1,5 @@
-const Promise = require('../index.es5.js')
-// const Promise = require('../index.es6.js')
+// const Promise = require('../index.es5.js')
+const Promise = require('../index.es6.js')
 
 let adapter = {}
 
