@@ -9,7 +9,3 @@
 两者实现思路一致，只是es6版本使用了一些es6的语法糖，都已经跑通Promise/A+规范的全部测试用例，用例来自于[promises-aplus-tests](https://github.com/promises-aplus/promises-tests/)
 
 ![用例全部pass](./img/promise_es5_test.jpg)
-
-
-
-> todo: 将实现思路写进README，思路参考了大众的实现方案
