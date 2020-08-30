@@ -1,17 +1,17 @@
 'use strict'
 
-if (typeof global.Deferr !== 'undefined') {
+if (typeof global.Deferred !== 'undefined') {
   return
 }
 
-module.exports = Deferr
+module.exports = Deferred
 
 //变量类型判断的工具方法
-function getType (obj) {
+function getType(obj) {
   return {}.toString.call(obj)
 }
 function isType(type) {
-  return function(obj) {
+  return function (obj) {
     return getType(obj) == "[object " + type + "]"
   }
 }
@@ -45,7 +45,7 @@ var helper = {
         func(value)
       })
       return promise
-    } catch(error) {
+    } catch (error) {
       return this.doReject(promise, error)
     }
   },
@@ -64,7 +64,7 @@ var helper = {
       if (returnValue === promise) {
         throw new TypeError('Chaining cycle detected for promise')
       }
-      if (returnValue instanceof Deferr) {
+      if (returnValue instanceof Deferred) {
         returnValue.then(function (val) {
           helper.doThenFunc(promise, val, callbacks)
         }, reject)
@@ -94,9 +94,9 @@ var helper = {
   }
 }
 
-function Deferr(resolver) {
+function Deferred(resolver) {
   if (!isFunction(resolver)) {
-    throw new TypeError('Deferr resolver ' + getType(resolver) + ' is not a function')
+    throw new TypeError('Deferred resolver ' + getType(resolver) + ' is not a function')
   }
   this.status = STATUS.PENDING
   this.value = null
@@ -130,14 +130,14 @@ function Deferr(resolver) {
 }
 
 //原型上的方法
-Deferr.prototype.then = function doThen(onResolve, onReject) {
+Deferred.prototype.then = function doThen(onResolve, onReject) {
   var self = this, newPormise
   //解决值穿透
-  onReject = isFunction(onReject) ? onReject : function (reason) {throw reason}
-  onResolve = isFunction(onResolve) ? onResolve : function (value) {return value}
+  onReject = isFunction(onReject) ? onReject : function (reason) { throw reason }
+  onResolve = isFunction(onResolve) ? onResolve : function (value) { return value }
 
   if (this.status === STATUS.PENDING) {
-    return newPormise = new Deferr(function (resolve, reject) {
+    return newPormise = new Deferred(function (resolve, reject) {
       self.resolveQueue.push(function (value) {
         try {
           var returnValue = onResolve(value)
@@ -162,7 +162,7 @@ Deferr.prototype.then = function doThen(onResolve, onReject) {
       })
     })
   } else {
-    return newPormise = new Deferr(
+    return newPormise = new Deferred(
       asynWrap(function (resolve, reject) {
         try {
           var returnValue = self.status === STATUS.FULFILLED
@@ -181,41 +181,41 @@ Deferr.prototype.then = function doThen(onResolve, onReject) {
   }
 }
 
-Deferr.prototype.catch = function doCatch(onReject) {
+Deferred.prototype.catch = function doCatch(onReject) {
   return this.then(null, onReject)
 }
 
 //其他的方法
-Deferr.resolve = function (value) {
+Deferred.resolve = function (value) {
   return new this(function (resolve, reject) {
     resolve(value)
   })
 }
-Deferr.reject = function (reason) {
+Deferred.reject = function (reason) {
   return new this(function (resolve, reject) {
     reject(reason)
   })
 }
 
-Deferr.all = function all(promises) {
+Deferred.all = function all(promises) {
   if (!isArray(promises)) {
     return this.reject(new TypeError('args must be an array'))
   }
 
   var newPromise,
-      remaining = 1,
-      len = promises.length,
-      result = []
-  return newPromise = new Deferr(function (resolve, reject) {
+    remaining = 1,
+    len = promises.length,
+    result = []
+  return newPromise = new Deferred(function (resolve, reject) {
     if (promises.length === 0) return resolve([])
 
-    asynWrap(function() {
+    asynWrap(function () {
       for (var i = 0; i < len; i++) {
         done(i, promises[i])
       }
     })()
 
-    function done (index, value) {
+    function done(index, value) {
       helper.doThenFunc(newPromise, value, {
         resolve: function (val) {
           result[index] = val
@@ -229,14 +229,14 @@ Deferr.all = function all(promises) {
   })
 
 }
-Deferr.race = function race(promises) {
+Deferred.race = function race(promises) {
   if (!isArray(promises)) {
     return this.reject(new TypeError('args must be an array'))
   }
   var newPromise,
-      len = promises.length
+    len = promises.length
 
-  return newPromise = new Deferr(function (resolve, reject) {
+  return newPromise = new Deferred(function (resolve, reject) {
     if (promises.length === 0) return resolve([])
 
     asynWrap(function () {

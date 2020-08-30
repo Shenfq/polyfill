@@ -1,6 +1,6 @@
 'use strict'
 
-if (typeof global.Deferr !== 'undefined') {
+if (typeof global.Deferred !== 'undefined') {
   return
 }
 
@@ -15,22 +15,22 @@ const STATUS = {
 const helper = {
   //使用setTimeout将then内的方法变成异步调用
   //TODO: 后续使用更合理的方式让promise异步化
-  asynWrap (fn, ...args) {
+  asynWrap(fn, ...args) {
     setTimeout(function () {
       fn(...args)
     }, 4)
   },
-  getType (obj) {
+  getType(obj) {
     return {}.toString.call(obj)
   },
   isArray: Array.isArray,
-  isFunction (obj) {
+  isFunction(obj) {
     return this.getType(obj) === "[object Function]"
   },
-  isObject (obj) {
+  isObject(obj) {
     return this.getType(obj) === "[object Object]"
   },
-  doResolve (promise, value) {
+  doResolve(promise, value) {
     try {
       promise.status = STATUS.FULFILLED
       promise.value = value
@@ -38,11 +38,11 @@ const helper = {
         func(value)
       })
       return promise
-    } catch(error) {
+    } catch (error) {
       return this.doReject(promise, error)
     }
   },
-  doReject (promise, reason) {
+  doReject(promise, reason) {
     promise.status = STATUS.REJECTED
     promise.value = reason
     promise.rejectQueue.forEach(function (func) {
@@ -50,14 +50,14 @@ const helper = {
     })
     return promise
   },
-  doThenFunc (promise, returnValue, callbacks) {
+  doThenFunc(promise, returnValue, callbacks) {
     let resolve = callbacks.resolve, reject = callbacks.reject
     let called = false
     try {
       if (returnValue === promise) {
         throw new TypeError('Chaining cycle detected for promise')
       }
-      if (returnValue instanceof Deferr) {
+      if (returnValue instanceof Deferred) {
         returnValue.then(function (val) {
           helper.doThenFunc(promise, val, callbacks)
         }, reject)
@@ -87,10 +87,10 @@ const helper = {
   }
 }
 
-class Deferr {
-  constructor (resolver) {
+class Deferred {
+  constructor(resolver) {
     if (!helper.isFunction(resolver)) {
-      throw new TypeError('Deferr resolver ' + helper.getType(resolver) + ' is not a function')
+      throw new TypeError('Deferred resolver ' + helper.getType(resolver) + ' is not a function')
     }
 
     this.status = STATUS.PENDING
@@ -131,7 +131,7 @@ class Deferr {
     onResolve = helper.isFunction(onResolve) ? onResolve : function (value) { return value }
 
     if (this.status === STATUS.PENDING) {
-      return newPormise = new Deferr((resolve, reject) => {
+      return newPormise = new Deferred((resolve, reject) => {
         this.resolveQueue.push(function (value) {
           try {
             let returnValue = onResolve(value)
@@ -154,7 +154,7 @@ class Deferr {
         })
       })
     } else {
-      return newPormise = new Deferr((resolve, reject) =>{
+      return newPormise = new Deferred((resolve, reject) => {
         helper.asynWrap(() => {
           try {
             let returnValue = this.status === STATUS.FULFILLED
@@ -178,19 +178,19 @@ class Deferr {
 
   //其他的静态方法
 
-  static resolve (value) {
+  static resolve(value) {
     return new this(function (resolve, reject) {
       resolve(value)
     })
   }
 
-  static reject (reason) {
+  static reject(reason) {
     return new this(function (resolve, reject) {
       reject(reason)
     })
   }
 
-  static all (promises) {
+  static all(promises) {
     if (!helper.isArray(promises)) {
       return this.reject(new TypeError('args must be an array'))
     }
@@ -198,7 +198,7 @@ class Deferr {
     let newPromise, remaining = 1, result = []
     const len = promises.length
 
-    return newPromise = new Deferr(function (resolve, reject) {
+    return newPromise = new Deferred(function (resolve, reject) {
       if (promises.length === 0) return resolve([])
 
       helper.asynWrap(() => {
@@ -229,7 +229,7 @@ class Deferr {
     let newPromise
     const len = promises.length
 
-    return newPromise = new Deferr(function (resolve, reject) {
+    return newPromise = new Deferred(function (resolve, reject) {
       if (promises.length === 0) return resolve([])
 
       helper.asynWrap(() => {
@@ -246,4 +246,4 @@ class Deferr {
   }
 }
 
-module.exports = Deferr
+module.exports = Deferred
